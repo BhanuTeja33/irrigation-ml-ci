@@ -84,7 +84,7 @@ jobs:
             -X POST \
             -H "Content-Type: application/json" \
             -d '{"soil_moisture":75,"temperature":15,"humidity":90,"rainfall_forecast_mm":25}' \
-            http://localhost:5000/predict)
+            http://localhost:5001/predict)
           echo "Wet/cool field response: $response"
           echo "$response" | grep -q '"prediction"'
           echo "$response" | grep -q 'SKIP'
