@@ -45,7 +45,7 @@ jobs:
         with:
           name: irrigation-ml-artifacts-run-${{ github.run_number }}
           path: |
-            irrigation_model.pkl
+            irrigation_model_missing.pkl
             metrics.json
             field_data.csv
           if-no-files-found: error
