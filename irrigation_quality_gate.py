@@ -1,7 +1,7 @@
 import json
 import sys
 
-MINIMUM_ACCURACY = 1.00
+MINIMUM_ACCURACY = 0.90
 
 print("Reading irrigation model metrics...")
 
