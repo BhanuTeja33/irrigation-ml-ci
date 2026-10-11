@@ -28,7 +28,7 @@ class TestPredictionApplication(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.get_json()["prediction"],
-            "SKIP"
+            "IRRIGATE"
         )
 
     def test_low_irrigation_need_prediction(self):
