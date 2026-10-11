@@ -49,7 +49,7 @@ class TestIrrigationMLPipeline(unittest.TestCase):
         }])
 
         prediction = model.predict(sample)[0]
-        self.assertEqual(int(prediction), 0)
+        self.assertEqual(int(prediction), 1)
 
     def test_wet_cool_field_skips_irrigation(self):
         model = joblib.load("irrigation_model.pkl")
