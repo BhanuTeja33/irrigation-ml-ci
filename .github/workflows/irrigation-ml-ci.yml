@@ -34,5 +34,8 @@ jobs:
       - name: Train irrigation model
         run: python train_irrigation_model.py
 
+      - name: Check irrigation quality gate
+        run: python irrigation_quality_gate.py
+
       - name: Run automated ML tests
         run: python -m unittest discover -v
