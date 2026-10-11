@@ -39,3 +39,14 @@ jobs:
 
       - name: Run automated ML tests
         run: python -m unittest discover -v
+
+      - name: Upload validated irrigation artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: irrigation-ml-artifacts-run-${{ github.run_number }}
+          path: |
+            irrigation_model.pkl
+            metrics.json
+            field_data.csv
+          if-no-files-found: error
+          retention-days: 5
