@@ -1,0 +1,6 @@
+*.docx
+Practical_Word_Documents/
+screenshots/
+__pycache__/
+*.pyc
+.venv/
