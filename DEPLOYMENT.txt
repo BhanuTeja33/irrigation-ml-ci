@@ -1,0 +1,70 @@
+======================================================================
+  Irrigation Need Prediction ML Application - Deployment Guide
+======================================================================
+
+1. Application Overview
+-----------------------
+- Service: Irrigation Need Prediction REST API
+- Runtime: Python 3.11-slim
+- Framework: Flask
+- Default Port: 5000 (0.0.0.0:5000)
+- Endpoints:
+    GET  /        -> Health check (Status 200, {"status": "ok", "service": "irrigation-need-prediction"})
+    POST /predict  -> Inference endpoint (JSON: soil_moisture, temperature, humidity, rainfall_forecast_mm)
+
+2. Local Execution (Direct Python)
+----------------------------------
+    pip install -r requirements.txt
+    python train_irrigation_model.py
+    python irrigation_quality_gate.py
+    python app.py
+
+3. Local Containerized Execution (Docker)
+-----------------------------------------
+    # Build image
+    docker build -t irrigation-ml:1.0 .
+
+    # Run container in detached mode
+    docker run -d --name irrigation-ml-container -p 5000:5000 irrigation-ml:1.0
+
+    # Test Health Endpoint
+    curl http://localhost:5000/
+
+    # Test Prediction (Dry/Hot Field -> Expected: IRRIGATE, code: 1)
+    curl -X POST -H "Content-Type: application/json" -d '{"soil_moisture":15,"temperature":40,"humidity":30,"rainfall_forecast_mm":0}' http://localhost:5000/predict
+
+    # Test Prediction (Wet/Cool Field -> Expected: SKIP, code: 0)
+    curl -X POST -H "Content-Type: application/json" -d '{"soil_moisture":75,"temperature":15,"humidity":90,"rainfall_forecast_mm":25}' http://localhost:5000/predict
+
+    # Container Management
+    docker logs irrigation-ml-container
+    docker stop irrigation-ml-container
+    docker rm irrigation-ml-container
+
+4. GitHub Container Registry (GHCR) Publishing (Practicals 8 & 9)
+-----------------------------------------------------------------
+    # Image Reference: ghcr.io/bhanuteja33/irrigation-ml:latest
+    # Automated GitHub Actions Workflow: .github/workflows/docker-publish.yml
+    # Workflow triggers on git push to main:
+    #   1. Train model -> 2. Quality Gate -> 3. Unit Tests
+    #   4. Docker build -> 5. Container health test -> 6. Push to GHCR
+
+5. Production Cloud Deployment on Render (Practical 10)
+-------------------------------------------------------
+    - Platform: Render Web Service (https://dashboard.render.com)
+    - Deployment Type: Existing Image (pulls prebuilt container from GHCR)
+    - Image URL: ghcr.io/bhanuteja33/irrigation-ml:latest
+    - Service Name: irrigation-ml-service
+    - Public Endpoint: https://irrigation-ml-service-5pt9.onrender.com
+    - Container Port: 5000 (Set environment variable: PORT = 5000)
+    - Health Check Path: /
+    - Deployment Status: Live (Build time: 40.1s)
+    - Verification Commands:
+        # Health check:
+        curl https://irrigation-ml-service-5pt9.onrender.com/
+        # Prediction test:
+        Invoke-RestMethod -Uri "https://irrigation-ml-service-5pt9.onrender.com/predict" `
+          -Method Post `
+          -Body '{"soil_moisture":15,"temperature":40,"humidity":30,"rainfall_forecast_mm":0}' `
+          -ContentType "application/json"
+======================================================================
