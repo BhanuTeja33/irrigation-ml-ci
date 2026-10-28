@@ -1,0 +1,20 @@
+groups:
+  - name: irrigation-need-api-alerts
+    rules:
+      - alert: IrrigationAPIClientErrors
+        expr: sum(rate(irrigation_api_http_requests_total{status=~"4.."}[2m])) > 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Irrigation Need Prediction API is receiving client errors"
+          description: "4xx client error responses (such as 400 or 404) have been detected in the recent evaluation window."
+
+      - alert: IrrigationAPIDown
+        expr: up{job="irrigation-need-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Irrigation Need Prediction API monitoring target is down"
+          description: "Prometheus cannot scrape the deployed API target at https://irrigation-ml-latest.onrender.com/metrics."
