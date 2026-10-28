@@ -6,7 +6,14 @@ from pathlib import Path
 
 import joblib
 import pandas as pd
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 
 # Configure application logger to stdout
 logging.basicConfig(
@@ -19,12 +26,33 @@ logger = logging.getLogger("irrigation-api")
 
 app = Flask(__name__)
 
+# --- Prometheus Metrics Definitions ---
+HTTP_REQUESTS = Counter(
+    "irrigation_api_http_requests_total",
+    "Total HTTP requests received by the Irrigation Need Prediction API",
+    ["method", "path", "status"],
+)
+HTTP_LATENCY = Histogram(
+    "irrigation_api_http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "path"],
+)
+PREDICTIONS = Counter(
+    "irrigation_api_predictions_total",
+    "Total Irrigation Need Prediction attempts",
+    ["result"],
+)
+MODEL_LOADED = Gauge(
+    "irrigation_api_model_loaded",
+    "Whether the Irrigation Need Prediction model is loaded (1=loaded, 0=not loaded)",
+)
+
 MODEL_PATH = Path("irrigation_model.pkl")
 FEATURES = [
     "soil_moisture",
     "temperature",
     "humidity",
-    "rainfall_forecast_mm"
+    "rainfall_forecast_mm",
 ]
 
 # Non-sensitive features approved for logging
@@ -33,6 +61,7 @@ SAFE_INPUT_FIELDS = set(FEATURES)
 
 def load_model():
     if not MODEL_PATH.exists():
+        MODEL_LOADED.set(0)
         logger.error("event=model_missing model_file=%s", MODEL_PATH)
         raise FileNotFoundError(
             "irrigation_model.pkl was not found. "
@@ -40,9 +69,11 @@ def load_model():
         )
     try:
         model = joblib.load(MODEL_PATH)
+        MODEL_LOADED.set(1)
         logger.info("event=model_loaded model_file=%s", MODEL_PATH)
         return model
     except Exception:
+        MODEL_LOADED.set(0)
         logger.exception("event=model_load_failed model_file=%s", MODEL_PATH)
         raise
 
@@ -62,19 +93,36 @@ def start_timer():
 
 
 @app.after_request
-def log_request(response):
+def log_and_record_metrics(response):
     start = request.environ.get("start_time", time.perf_counter())
     request_id = request.environ.get("request_id", "unknown")
-    duration_ms = (time.perf_counter() - start) * 1000
+    duration = time.perf_counter() - start
+    duration_ms = duration * 1000
 
-    level = logging.WARNING if response.status_code >= 400 else logging.INFO
+    path = request.path
+    method = request.method
+    status_code = response.status_code
+
+    # Do not count /metrics scrape requests in application traffic metrics
+    if path != "/metrics":
+        HTTP_REQUESTS.labels(
+            method=method,
+            path=path,
+            status=str(status_code),
+        ).inc()
+        HTTP_LATENCY.labels(
+            method=method,
+            path=path,
+        ).observe(duration)
+
+    level = logging.WARNING if status_code >= 400 else logging.INFO
     logger.log(
         level,
         "event=http_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f",
         request_id,
-        request.method,
-        request.path,
-        response.status_code,
+        method,
+        path,
+        status_code,
         duration_ms,
     )
     response.headers["X-Request-ID"] = request_id
@@ -89,6 +137,11 @@ def health_check():
     })
 
 
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
+
 @app.post("/predict")
 def predict():
     request_id = request.environ.get("request_id", "unknown")
@@ -97,7 +150,7 @@ def predict():
     if not data:
         logger.warning(
             "event=validation_error request_id=%s path=/predict reason=missing_json_body",
-            request_id
+            request_id,
         )
         return jsonify({"error": "JSON request body is required"}), 400
 
@@ -110,11 +163,11 @@ def predict():
         logger.warning(
             "event=validation_error request_id=%s path=/predict missing_fields=%s",
             request_id,
-            missing_fields
+            missing_fields,
         )
         return jsonify({
             "error": "Missing required fields",
-            "missing_fields": missing_fields
+            "missing_fields": missing_fields,
         }), 400
 
     try:
@@ -125,7 +178,7 @@ def predict():
             "event=prediction_request request_id=%s feature_names=%s safe_input=%s",
             request_id,
             sorted(data.keys()),
-            safe_input
+            safe_input,
         )
 
         sample = pd.DataFrame([{
@@ -137,18 +190,20 @@ def predict():
         prediction_code = int(current_model.predict(sample)[0])
         prediction = "IRRIGATE" if prediction_code == 1 else "SKIP"
 
+        PREDICTIONS.labels(result="success").inc()
         logger.info(
             "event=prediction_success request_id=%s prediction=%s prediction_code=%d",
             request_id,
             prediction,
-            prediction_code
+            prediction_code,
         )
 
         return jsonify({
             "prediction": prediction,
-            "prediction_code": prediction_code
+            "prediction_code": prediction_code,
         })
     except Exception:
+        PREDICTIONS.labels(result="error").inc()
         logger.exception("event=prediction_failed request_id=%s", request_id)
         return jsonify({"error": "Prediction failed"}), 500
 
