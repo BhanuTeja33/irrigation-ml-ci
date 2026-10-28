@@ -632,14 +632,20 @@ jobs:
     print(f"Document saved successfully: {output_path}")
 
 if __name__ == "__main__":
-    screenshots_dir = r"C:\Users\velpu\OneDrive\Desktop\mlops project\screenshots"
+    extracted_dir = r"C:\Users\velpu\OneDrive\Desktop\mlops project\screenshots\p14_extracted"
     img_map = {
-        "fig1": os.path.join(screenshots_dir, "image1.png"),
-        "fig2": os.path.join(screenshots_dir, "image2.png"),
-        "fig9": os.path.join(screenshots_dir, "p14_image1_deployment_sha_pod.png"),
-        "fig10": os.path.join(screenshots_dir, "p14_image2_health_predict_rollout_rollback.png"),
-        "fig11": os.path.join(screenshots_dir, "p14_image2_health_predict_rollout_rollback.png"),
-        "fig12": os.path.join(screenshots_dir, "p14_image2_health_predict_rollout_rollback.png")
+        "fig1": os.path.join(extracted_dir, "image_09.png"),
+        "fig2": os.path.join(extracted_dir, "image_08.png"),
+        "fig3": os.path.join(extracted_dir, "image_11.png"),
+        "fig4": os.path.join(extracted_dir, "image_04.png"),
+        "fig5": os.path.join(extracted_dir, "image_06.png"),
+        "fig6": os.path.join(extracted_dir, "image_10.png"),
+        "fig7": os.path.join(extracted_dir, "image_05.png"),
+        "fig8": os.path.join(extracted_dir, "image_01.png"),
+        "fig9": os.path.join(extracted_dir, "image_02.png"),
+        "fig10": os.path.join(extracted_dir, "image_12.png"),
+        "fig11": os.path.join(extracted_dir, "image_03.png"),
+        "fig12": os.path.join(extracted_dir, "image_03.png")
     }
     out_dir = r"C:\Users\velpu\OneDrive\Desktop\mlops project\Practical_Word_Documents"
     out_file = os.path.join(out_dir, "PRACTICAL-14_Automate_Kubernetes_Deployment.docx")
