@@ -632,10 +632,18 @@ jobs:
     print(f"Document saved successfully: {output_path}")
 
 if __name__ == "__main__":
+    screenshots_dir = r"C:\Users\velpu\OneDrive\Desktop\mlops project\screenshots"
+    img_map = {
+        "fig1": os.path.join(screenshots_dir, "image1.png"),
+        "fig2": os.path.join(screenshots_dir, "image2.png"),
+        "fig9": os.path.join(screenshots_dir, "p14_image1_deployment_sha_pod.png"),
+        "fig10": os.path.join(screenshots_dir, "p14_image2_health_predict_rollout_rollback.png"),
+        "fig11": os.path.join(screenshots_dir, "p14_image2_health_predict_rollout_rollback.png"),
+        "fig12": os.path.join(screenshots_dir, "p14_image2_health_predict_rollout_rollback.png")
+    }
     out_dir = r"C:\Users\velpu\OneDrive\Desktop\mlops project\Practical_Word_Documents"
     out_file = os.path.join(out_dir, "PRACTICAL-14_Automate_Kubernetes_Deployment.docx")
-    generate_practical_14(out_file)
+    generate_practical_14(out_file, img_map)
     
-    # Also save in root of mlops project
     root_file = r"C:\Users\velpu\OneDrive\Desktop\mlops project\PRACTICAL-14_Automate_Kubernetes_Deployment_Final.docx"
-    generate_practical_14(root_file)
+    generate_practical_14(root_file, img_map)

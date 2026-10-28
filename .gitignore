@@ -7,3 +7,5 @@ __pycache__/
 actions-runner/
 *.zip
 
+docker-runner/
+
