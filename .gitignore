@@ -4,3 +4,6 @@ screenshots/
 __pycache__/
 *.pyc
 .venv/
+actions-runner/
+*.zip
+
