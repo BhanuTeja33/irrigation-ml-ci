@@ -1,0 +1,123 @@
+name: Irrigation Need Prediction - Kubernetes CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: bhanuteja33/irrigation-ml
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image_ref: ${{ steps.image.outputs.image_ref }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies & Train model
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          python train_irrigation_model.py
+          python irrigation_quality_gate.py
+
+      - name: Create immutable image reference
+        id: image
+        run: |
+          echo "image_ref=${REGISTRY}/${IMAGE_NAME}:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image for testing
+        run: |
+          docker build -t irrigation-ml:test .
+
+      - name: Start test container
+        run: |
+          docker run -d --name irrigation-test -p 5000:5000 irrigation-ml:test
+
+      - name: Wait for health endpoint
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5000/; then
+              echo "Container health test passed"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs irrigation-test
+          exit 1
+
+      - name: Run automated tests
+        run: |
+          python -m unittest test_app.py test_irrigation_ml.py
+
+      - name: Stop test container
+        if: always()
+        run: docker rm -f irrigation-test || true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag tested image
+        run: |
+          docker tag irrigation-ml:test ${REGISTRY}/${IMAGE_NAME}:sha-${GITHUB_SHA}
+          docker tag irrigation-ml:test ${REGISTRY}/${IMAGE_NAME}:latest
+
+      - name: Push tested image to GHCR
+        run: |
+          docker push ${REGISTRY}/${IMAGE_NAME}:sha-${GITHUB_SHA}
+          docker push ${REGISTRY}/${IMAGE_NAME}:latest
+
+  deploy-kubernetes:
+    needs: build-test-push
+    runs-on: self-hosted
+
+    steps:
+      - name: Verify Kubernetes cluster
+        run: |
+          kubectl config current-context
+          kubectl get nodes
+
+      - name: Show current deployment image
+        run: |
+          kubectl get deployment irrigation-need-prediction -o "jsonpath={.spec.template.spec.containers[0].image}"
+
+      - name: Deploy the tested image
+        run: |
+          kubectl set image deployment/irrigation-need-prediction irrigation-ml-api=${{ needs.build-test-push.outputs.image_ref }}
+
+      - name: Wait for Kubernetes rollout
+        run: |
+          kubectl rollout status deployment/irrigation-need-prediction --timeout=180s
+
+      - name: Verify health through the Kubernetes Service
+        run: |
+          kubectl exec deployment/irrigation-need-prediction -- python -c "import urllib.request; print(urllib.request.urlopen('http://irrigation-need-prediction-service/', timeout=10).read().decode())"
+
+      - name: Show deployed image and Pods
+        run: |
+          kubectl get deployment irrigation-need-prediction -o wide
+          kubectl get pods -o wide
+
+      - name: Roll back if deployment verification fails
+        if: failure()
+        run: |
+          kubectl rollout undo deployment/irrigation-need-prediction
+          kubectl rollout status deployment/irrigation-need-prediction --timeout=180s
