@@ -9,3 +9,7 @@ actions-runner/
 
 docker-runner/
 
+drift/*.csv
+drift/*.pkl
+drift/*.json
+

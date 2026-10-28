@@ -359,6 +359,18 @@ def generate_practical_15(output_path, img_map=None):
     add_code_block(doc, "python -m unittest test_app.py test_irrigation_ml.py\n# Output:\n2026-10-28 15:14:40 | INFO | irrigation-api | event=model_loaded model_file=irrigation_model.pkl\nRan 11 tests in 0.074s - OK")
     add_figure_placeholder(doc, 8, "Unit test suite execution verifying zero regressions on newly promoted model (11/11 tests OK)", img_map.get("fig8"))
     
+    # Step 9
+    add_heading_2(doc, "Step 9: Version-Control Drift Scripts & Repository Synchronization")
+    add_p(doc, "Commit the drift detection suite, baseline references, and retraining artifacts to GitHub to maintain full GitOps reproducibility:")
+    add_code_block(doc, "git add drift/*.py generate_practical_15_docx.py\ngit commit -m \"Add Practical 15 data drift detection and candidate retraining pipeline\"\ngit push origin main")
+    add_figure_placeholder(doc, 9, "GitHub repository tree showing drift suite and document generator committed to main branch", img_map.get("fig9"))
+
+    # Step 10
+    add_heading_2(doc, "Step 10: Trigger Automated Packaging & GHCR Publishing")
+    add_p(doc, "The Git push triggers the GitHub Actions CI/CD workflow (build-test-publish), verifying the newly retrained model within the container test suite and pushing to GHCR in 1m 12s:")
+    add_figure_placeholder(doc, 10, "GitHub Actions workflow run #12 executing build-test-publish with 100% success", img_map.get("fig10"))
+    add_figure_placeholder(doc, 11, "GitHub Actions CI detailed step breakdown confirming model training, container health, and GHCR publishing", img_map.get("fig11"))
+    
     # 7. Statistical Findings Table
     add_heading_1(doc, "7. Feature-Level Statistical Drift Analysis Table")
     stat_headers = ["Feature Name", "Reference Mean", "Current Mean", "Delta Mean", "KS Statistic", "p-value", "Drift Detected?"]
@@ -454,9 +466,23 @@ def generate_practical_15(output_path, img_map=None):
     print(f"Document saved successfully: {output_path}")
 
 if __name__ == "__main__":
+    extracted_dir = r"C:\Users\velpu\OneDrive\Desktop\mlops project\screenshots\p15_extracted"
+    img_map = {
+        "fig1": os.path.join(extracted_dir, "image_01.png"),
+        "fig2": os.path.join(extracted_dir, "image_02.png"),
+        "fig3": os.path.join(extracted_dir, "image_02.png"),
+        "fig4": os.path.join(extracted_dir, "image_03.png"),
+        "fig5": os.path.join(extracted_dir, "image_03.png"),
+        "fig6": os.path.join(extracted_dir, "image_04.png"),
+        "fig7": os.path.join(extracted_dir, "image_04.png"),
+        "fig8": os.path.join(extracted_dir, "image_05.png"),
+        "fig9": os.path.join(extracted_dir, "image_06.png"),
+        "fig10": os.path.join(extracted_dir, "image_07.png"),
+        "fig11": os.path.join(extracted_dir, "image_08.png")
+    }
     out_dir = r"C:\Users\velpu\OneDrive\Desktop\mlops project\Practical_Word_Documents"
     out_file = os.path.join(out_dir, "PRACTICAL-15_Detect_Data_Drift_and_Retrain_Model.docx")
-    generate_practical_15(out_file)
+    generate_practical_15(out_file, img_map)
     
     root_file = r"C:\Users\velpu\OneDrive\Desktop\mlops project\PRACTICAL-15_Detect_Data_Drift_and_Retrain_Model_Final.docx"
-    generate_practical_15(root_file)
+    generate_practical_15(root_file, img_map)
