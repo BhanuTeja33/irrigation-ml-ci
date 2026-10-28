@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: irrigation-ml-api
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+    restart: unless-stopped
+    networks:
+      - mlops-monitoring
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./Practical_12_Monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./Practical_12_Monitoring/irrigation_api_alerts.yml:/etc/prometheus/irrigation_api_alerts.yml:ro
+    restart: unless-stopped
+    networks:
+      - mlops-monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - mlops-monitoring
+
+networks:
+  mlops-monitoring:
+    name: mlops-monitoring
