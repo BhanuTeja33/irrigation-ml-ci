@@ -9,7 +9,7 @@ COPY app.py .
 COPY irrigation_model.pkl .
 COPY metrics.json .
 
-EXPOSE 500
+EXPOSE 5000
 
 CMD ["python", "app.py"]
 
